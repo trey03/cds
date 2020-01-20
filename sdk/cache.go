@@ -7,7 +7,6 @@ import (
 	"io"
 	"net/url"
 	"os"
-	"path"
 	"path/filepath"
 	"strings"
 
@@ -54,20 +53,13 @@ func CreateTarFromPaths(fs afero.Fs, cwd string, paths []string, opts *TarOption
 	// Create a new tar archive.
 	tw := tar.NewWriter(buf)
 
-	for _, p := range paths {
+	for _, path := range paths {
 		// ensure the src actually exists before trying to tar it
-
-		completePath := p
-		if !path.IsAbs(p) {
-			completePath = filepath.Join(cwd, p)
+		if _, err := fs.Stat(path); err != nil {
+			return nil, 0, fmt.Errorf("Unable to tar files - %v", err.Error())
 		}
-
-		if _, err := fs.Stat(completePath); err != nil {
-			return nil, 0, fmt.Errorf("unable to tar files - %v", err.Error())
-		}
-
 		// walk path
-		errWalk := afero.Walk(fs, completePath, func(file string, fi os.FileInfo, err error) error {
+		errWalk := afero.Walk(fs, path, func(file string, fi os.FileInfo, err error) error {
 			if err != nil {
 				return err
 			}
@@ -78,7 +70,7 @@ func CreateTarFromPaths(fs afero.Fs, cwd string, paths []string, opts *TarOption
 				return err
 			}
 
-			header.Name = strings.TrimPrefix(strings.TrimPrefix(file, cwd), string(filepath.Separator))
+			header.Name = strings.TrimPrefix(strings.Replace(file, cwd, "", -1), string(filepath.Separator))
 
 			if opts != nil && opts.TrimDirName != "" {
 				opts.TrimDirName = strings.TrimPrefix(opts.TrimDirName, string(filepath.Separator))
@@ -89,11 +81,10 @@ func CreateTarFromPaths(fs afero.Fs, cwd string, paths []string, opts *TarOption
 				if errEval != nil {
 					return errEval
 				}
-				abs, errAbs := filepath.Abs(header.Name)
+				abs, errAbs := filepath.Abs(filepath.Dir(header.Name))
 				if errAbs != nil {
 					return errAbs
 				}
-
 				symlinkRel, errRel := filepath.Rel(abs, symlink)
 				if errRel != nil {
 					return errRel
