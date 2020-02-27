@@ -3,6 +3,8 @@ package api
 import (
 	"context"
 
+	"github.com/ovh/cds/engine/api/notification"
+
 	"github.com/go-gorp/gorp"
 
 	"github.com/ovh/cds/engine/api/cache"
@@ -40,7 +42,7 @@ func WorkflowSendEvent(ctx context.Context, db gorp.SqlExecutor, store cache.Sto
 			}
 		}
 
-		event.PublishWorkflowNodeRun(ctx, db, store, wnr, wr.Workflow, &previousNodeRun)
+		event.PublishWorkflowNodeRun(ctx, wnr, wr.Workflow, notification.GetUserWorkflowEvents(ctx, db, store, wr.Workflow, &previousNodeRun, wnr))
 	}
 
 	for _, jobrun := range report.Jobs() {

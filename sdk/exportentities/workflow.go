@@ -7,8 +7,8 @@ import (
 	"gopkg.in/yaml.v2"
 
 	"github.com/ovh/cds/sdk"
-	"github.com/ovh/cds/sdk/exportentities/v1"
-	"github.com/ovh/cds/sdk/exportentities/v2"
+	v1 "github.com/ovh/cds/sdk/exportentities/v1"
+	v2 "github.com/ovh/cds/sdk/exportentities/v2"
 )
 
 // Name pattern for pull files.
@@ -25,6 +25,11 @@ type WorkflowPulled struct {
 	Pipelines    []WorkflowPulledItem `json:"pipelines"`
 	Applications []WorkflowPulledItem `json:"applications"`
 	Environments []WorkflowPulledItem `json:"environments"`
+}
+
+type Options struct {
+	SkipIfOnlyOneRepoWebhook bool
+	WithPermission           bool
 }
 
 // WorkflowPulledItem contains data for a workflow item.
@@ -85,24 +90,6 @@ func ParseWorkflow(exportWorkflow Workflow) (*sdk.Workflow, error) {
 		return nil, sdk.WithStack(fmt.Errorf("exportentities workflow cannot be cast, unknown version %s", exportWorkflow.GetVersion()))
 	}
 	return nil, sdk.WithStack(fmt.Errorf("exportentities workflow cannot be cast %+v", exportWorkflow))
-}
-
-func SetTemplate(w Workflow, path string) (Workflow, error) {
-	switch w.GetVersion() {
-	case WorkflowVersion2:
-		workflowV2, ok := w.(v2.Workflow)
-		if ok {
-			workflowV2.Template = path
-			return workflowV2, nil
-		}
-	case WorkflowVersion1:
-		workflowV1, ok := w.(v1.Workflow)
-		if ok {
-			workflowV1.Template = path
-			return workflowV1, nil
-		}
-	}
-	return nil, sdk.WithStack(fmt.Errorf("exportentities workflow cannot be cast %+v", w))
 }
 
 func NewWorkflow(ctx context.Context, w sdk.Workflow, opts ...v2.ExportOptions) (Workflow, error) {
