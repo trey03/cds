@@ -80,6 +80,23 @@ func TarWorkflowComponents(ctx context.Context, w WorkflowComponents, writer io.
 		}
 	}()
 
+	if w.Template.Name != "" {
+		bs, err := yaml.Marshal(w.Template)
+		if err != nil {
+			return sdk.WithStack(err)
+		}
+		if err := tw.WriteHeader(&tar.Header{
+			Name: fmt.Sprintf(PullWorkflowName, w.Template.Name),
+			Mode: 0644,
+			Size: int64(len(bs)),
+		}); err != nil {
+			return sdk.WrapError(err, "unable to write template header for %s", w.Template.Name)
+		}
+		if _, err := tw.Write(bs); err != nil {
+			return sdk.WrapError(err, "unable to write template value")
+		}
+	}
+
 	if w.Workflow != nil {
 		bs, err := yaml.Marshal(w.Workflow)
 		if err != nil {
